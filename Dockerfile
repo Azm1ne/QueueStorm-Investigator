@@ -11,6 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Application code (secrets are NEVER baked in — passed via --env-file at run time).
 COPY *.py ./
 COPY SUST_Preli_Sample_Cases.json ./
+COPY static/ ./static/
 
 ENV PORT=8000
 EXPOSE 8000

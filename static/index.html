@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueueStorm Investigator</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+
+    header{background:#1e40af;color:#fff;padding:.85rem 2rem;display:flex;align-items:center;gap:1rem;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+    header h1{font-size:1.15rem;font-weight:700;letter-spacing:-.01em}
+    header p{font-size:.7rem;opacity:.75;margin-top:.15rem}
+
+    main{max-width:1200px;margin:1.5rem auto;padding:0 1rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+    @media(max-width:768px){main{grid-template-columns:1fr}}
+
+    .card{background:#fff;border-radius:.75rem;padding:1.25rem 1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .card h2{font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:1.1rem}
+
+    .field{margin-bottom:.85rem}
+    .field label{display:block;font-size:.75rem;font-weight:600;color:#475569;margin-bottom:.3rem}
+    .field input,.field select,.field textarea{width:100%;padding:.45rem .7rem;border:1px solid #cbd5e1;border-radius:.4rem;font-size:.85rem;color:#1e293b;background:#fff;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+    .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+    .field textarea{resize:vertical;font-family:'Courier New',monospace;font-size:.78rem}
+
+    .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem}
+
+    .btn-row{display:flex;gap:.65rem;margin-top:1rem}
+    button{padding:.55rem 1.1rem;border:none;border-radius:.4rem;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s}
+    button.primary{background:#2563eb;color:#fff;flex:1}
+    button.primary:hover:not(:disabled){background:#1d4ed8}
+    button.primary:disabled{background:#93c5fd;cursor:not-allowed}
+    button.secondary{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+    button.secondary:hover{background:#e2e8f0}
+
+    select.sample-select{width:100%;padding:.45rem .7rem;border:1px solid #cbd5e1;border-radius:.4rem;font-size:.85rem;margin-bottom:.85rem;color:#1e293b}
+
+    /* ─── result pane ─── */
+    .empty{text-align:center;color:#94a3b8;padding:2.5rem 0}
+    .empty .icon{font-size:2.5rem;margin-bottom:.6rem}
+
+    .top-badges{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+    .badge{display:inline-block;padding:.25rem .7rem;border-radius:9999px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+    .badge.consistent{background:#dcfce7;color:#166534}
+    .badge.inconsistent{background:#fee2e2;color:#991b1b}
+    .badge.insufficient_data{background:#fef9c3;color:#854d0e}
+    .badge.critical{background:#fecaca;color:#7f1d1d}
+    .badge.high{background:#ffedd5;color:#7c2d12}
+    .badge.medium{background:#fef3c7;color:#78350f}
+    .badge.low{background:#dcfce7;color:#14532d}
+    .badge.need-review{background:#fee2e2;color:#991b1b}
+    .badge.ok-review{background:#dcfce7;color:#166534}
+
+    .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.75rem}
+    .meta-item{background:#f8fafc;border-radius:.4rem;padding:.6rem .75rem}
+    .meta-item .lbl{font-size:.62rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.18rem}
+    .meta-item .val{font-size:.82rem;font-weight:600;color:#1e293b;word-break:break-all}
+    .meta-item .val.mono{font-family:'Courier New',monospace;font-size:.75rem}
+    .meta-item.null-val .val{color:#94a3b8;font-style:italic;font-weight:400}
+
+    .info-box{border-radius:0 .4rem .4rem 0;padding:.65rem .9rem;margin-bottom:.6rem;font-size:.83rem;line-height:1.55}
+    .info-box .lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
+    .summary-box{background:#f0f9ff;border-left:3px solid #3b82f6;color:#0c4a6e}
+    .summary-box .lbl{color:#0284c7}
+    .action-box{background:#fff7ed;border-left:3px solid #f97316;color:#431407}
+    .action-box .lbl{color:#ea580c}
+    .reply-box{background:#f0fdf4;border-left:3px solid #22c55e;color:#14532d}
+    .reply-box .lbl{color:#16a34a}
+
+    .conf-bar{margin-bottom:.75rem}
+    .conf-bar .lbl{font-size:.62rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
+    .bar-bg{background:#e2e8f0;border-radius:9999px;height:7px}
+    .bar-fill{background:#2563eb;border-radius:9999px;height:7px;transition:width .5s ease}
+    .conf-pct{font-size:.72rem;color:#475569;font-weight:600;margin-top:.2rem}
+
+    .tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.6rem}
+    .tag{background:#e2e8f0;color:#475569;font-size:.67rem;padding:.18rem .55rem;border-radius:9999px}
+
+    .err{background:#fee2e2;border:1px solid #fca5a5;border-radius:.4rem;padding:.85rem 1rem;color:#991b1b;font-size:.83rem}
+
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;vertical-align:middle;margin-right:.4rem}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>&#128269; QueueStorm Investigator</h1>
+    <p>SUST CSE Carnival 2026 &middot; Codex Community Hackathon &middot; Online Preliminary</p>
+  </div>
+</header>
+
+<main>
+  <!-- ─── Input ─── -->
+  <div class="card">
+    <h2>Ticket Input</h2>
+
+    <div class="field">
+      <label>Load Sample</label>
+      <select class="sample-select" id="sampleSelect" onchange="loadSample(this.value)">
+        <option value="">&#8212; select a sample case &#8212;</option>
+        <option value="tkt001">TKT-001 &middot; Wrong Transfer (consistent)</option>
+        <option value="tkt002">TKT-002 &middot; Wrong Transfer — established recipient (inconsistent)</option>
+        <option value="tkt005">TKT-005 &middot; Phishing Alert (critical / fraud_risk)</option>
+        <option value="tkt007">TKT-007 &middot; Agent Cash-In &amp; Bangla reply</option>
+        <option value="tkt010">TKT-010 &middot; Duplicate Payment (2nd txn)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="ticketId">Ticket ID *</label>
+      <input type="text" id="ticketId" placeholder="e.g. TKT-001" value="TKT-001">
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="lang">Language</label>
+        <select id="lang">
+          <option value="en">English</option>
+          <option value="bn">Bangla</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="channel">Channel</label>
+        <select id="channel">
+          <option value="in_app_chat">In-App Chat</option>
+          <option value="call_center">Call Center</option>
+          <option value="email">Email</option>
+          <option value="web_form">Web Form</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="userType">User Type</label>
+        <select id="userType">
+          <option value="customer">Customer</option>
+          <option value="merchant">Merchant</option>
+          <option value="agent">Agent</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="complaint">Complaint *</label>
+      <textarea id="complaint" rows="4" placeholder="Customer's complaint text…">I sent 5000 taka to a wrong number around 2pm today. Please help me get my money back.</textarea>
+    </div>
+
+    <div class="field">
+      <label for="txHistory">Transaction History (JSON array, optional)</label>
+      <textarea id="txHistory" rows="7">[
+  {
+    "transaction_id": "TXN-9101",
+    "timestamp": "2026-04-14T14:08:22Z",
+    "type": "transfer",
+    "amount": 5000,
+    "counterparty": "+8801719876543",
+    "status": "completed"
+  }
+]</textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="primary" id="submitBtn" onclick="submitTicket()">Analyse Ticket</button>
+      <button class="secondary" onclick="clearForm()">Clear</button>
+    </div>
+    <p style="font-size:.68rem;color:#94a3b8;margin-top:.6rem">Tip: Ctrl+Enter to submit</p>
+  </div>
+
+  <!-- ─── Result ─── -->
+  <div class="card">
+    <h2>Analysis Result</h2>
+    <div id="result">
+      <div class="empty">
+        <div class="icon">&#128270;</div>
+        <p>Submit a ticket to see the investigation</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const SAMPLES = {
+  tkt001: {
+    ticket_id:"TKT-001",language:"en",channel:"in_app_chat",user_type:"customer",
+    complaint:"I sent 5000 taka to a wrong number around 2pm today. Please help me get my money back.",
+    transaction_history:[
+      {transaction_id:"TXN-9101",timestamp:"2026-04-14T14:08:22Z",type:"transfer",amount:5000,counterparty:"+8801719876543",status:"completed"}
+    ]
+  },
+  tkt002: {
+    ticket_id:"TKT-002",language:"en",channel:"call_center",user_type:"customer",
+    complaint:"I accidentally sent 2000 taka to the wrong person, please reverse it immediately.",
+    transaction_history:[
+      {transaction_id:"TXN-9202",timestamp:"2026-04-15T10:30:00Z",type:"transfer",amount:2000,counterparty:"+8801811223344",status:"completed"},
+      {transaction_id:"TXN-8801",timestamp:"2026-03-20T09:00:00Z",type:"transfer",amount:2000,counterparty:"+8801811223344",status:"completed"},
+      {transaction_id:"TXN-8501",timestamp:"2026-02-10T11:00:00Z",type:"transfer",amount:2000,counterparty:"+8801811223344",status:"completed"}
+    ]
+  },
+  tkt005: {
+    ticket_id:"TKT-005",language:"en",channel:"in_app_chat",user_type:"customer",
+    complaint:"Someone just called me saying they are from bKash and asked for my OTP and PIN to unblock my account. I haven't shared anything yet. What should I do?",
+    transaction_history:[]
+  },
+  tkt007: {
+    ticket_id:"TKT-007",language:"bn",channel:"in_app_chat",user_type:"agent",
+    complaint:"আমি আজকে সকালে ৫০০০ টাকা ক্যাশ ইন করেছি কিন্তু এখনও আমার একাউন্টে দেখাচ্ছে না।",
+    transaction_history:[
+      {transaction_id:"TXN-7701",timestamp:"2026-04-14T09:15:00Z",type:"cash_in",amount:5000,counterparty:"AGENT-0042",status:"pending"}
+    ]
+  },
+  tkt010: {
+    ticket_id:"TKT-010",language:"en",channel:"web_form",user_type:"customer",
+    complaint:"I was charged twice for the same electricity bill payment. Both payments went through within seconds of each other.",
+    transaction_history:[
+      {transaction_id:"TXN-10001",timestamp:"2026-04-14T18:00:01Z",type:"payment",amount:850,counterparty:"BILLER-DESCO",status:"completed"},
+      {transaction_id:"TXN-10002",timestamp:"2026-04-14T18:00:04Z",type:"payment",amount:850,counterparty:"BILLER-DESCO",status:"completed"}
+    ]
+  }
+};
+
+function loadSample(key) {
+  if (!key) return;
+  const s = SAMPLES[key];
+  document.getElementById('ticketId').value = s.ticket_id;
+  document.getElementById('lang').value = s.language;
+  document.getElementById('channel').value = s.channel;
+  document.getElementById('userType').value = s.user_type;
+  document.getElementById('complaint').value = s.complaint;
+  document.getElementById('txHistory').value = JSON.stringify(s.transaction_history, null, 2);
+}
+
+function clearForm() {
+  ['ticketId','complaint','txHistory'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('lang').value = 'en';
+  document.getElementById('channel').value = 'in_app_chat';
+  document.getElementById('userType').value = 'customer';
+  document.getElementById('sampleSelect').value = '';
+  document.getElementById('result').innerHTML = `<div class="empty"><div class="icon">&#128270;</div><p>Submit a ticket to see the investigation</p></div>`;
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderResult(r) {
+  const verdict = r.evidence_verdict || 'insufficient_data';
+  const sev = r.severity || 'low';
+  const txnNull = !r.relevant_transaction_id;
+  const pct = Math.round((r.confidence ?? 0) * 100);
+  const tags = (r.reason_codes || []).map(c => `<span class="tag">${escHtml(c)}</span>`).join('');
+
+  return `
+    <div class="top-badges">
+      <span class="badge ${verdict}">${verdict.replace(/_/g,' ')}</span>
+      <span class="badge ${sev}">${sev}</span>
+      <span class="badge ${r.human_review_required ? 'need-review' : 'ok-review'}">${r.human_review_required ? '⚠ Human Review' : '✓ Auto'}</span>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="lbl">Case Type</div>
+        <div class="val">${escHtml((r.case_type||'—').replace(/_/g,' '))}</div>
+      </div>
+      <div class="meta-item">
+        <div class="lbl">Department</div>
+        <div class="val">${escHtml((r.department||'—').replace(/_/g,' '))}</div>
+      </div>
+      <div class="meta-item ${txnNull?'null-val':''}">
+        <div class="lbl">Matched Transaction</div>
+        <div class="val mono">${txnNull ? 'null — no clear match' : escHtml(r.relevant_transaction_id)}</div>
+      </div>
+      <div class="meta-item">
+        <div class="lbl">Ticket ID</div>
+        <div class="val mono">${escHtml(r.ticket_id)}</div>
+      </div>
+    </div>
+
+    <div class="info-box summary-box">
+      <div class="lbl">Agent Summary</div>
+      ${escHtml(r.agent_summary || '—')}
+    </div>
+
+    <div class="info-box action-box">
+      <div class="lbl">Recommended Next Action</div>
+      ${escHtml(r.recommended_next_action || '—')}
+    </div>
+
+    <div class="info-box reply-box">
+      <div class="lbl">&#128172; Customer Reply</div>
+      ${escHtml(r.customer_reply || '—')}
+    </div>
+
+    <div class="conf-bar">
+      <div class="lbl">Confidence</div>
+      <div class="bar-bg"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+      <div class="conf-pct">${pct}%</div>
+    </div>
+
+    ${tags ? `<div class="tags">${tags}</div>` : ''}
+  `;
+}
+
+async function submitTicket() {
+  const btn = document.getElementById('submitBtn');
+  const resultEl = document.getElementById('result');
+
+  const ticketId = document.getElementById('ticketId').value.trim();
+  const complaint = document.getElementById('complaint').value.trim();
+  if (!ticketId || !complaint) {
+    resultEl.innerHTML = '<div class="err">ticket_id and complaint are required.</div>';
+    return;
+  }
+
+  let txHistory = [];
+  const txRaw = document.getElementById('txHistory').value.trim();
+  if (txRaw) {
+    try { txHistory = JSON.parse(txRaw); }
+    catch { resultEl.innerHTML = '<div class="err">Transaction History must be valid JSON (or leave blank).</div>'; return; }
+  }
+
+  const payload = {
+    ticket_id: ticketId, complaint,
+    language: document.getElementById('lang').value,
+    channel: document.getElementById('channel').value,
+    user_type: document.getElementById('userType').value,
+    transaction_history: txHistory,
+  };
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Analysing…';
+  resultEl.innerHTML = '<div class="empty"><div class="icon">&#9203;</div><p>Analysing…</p></div>';
+
+  try {
+    const resp = await fetch('/analyze-ticket', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      resultEl.innerHTML = `<div class="err"><strong>Error ${resp.status}:</strong> ${escHtml(data.error || JSON.stringify(data))}</div>`;
+    } else {
+      resultEl.innerHTML = renderResult(data);
+      // animate confidence bar after render
+      requestAnimationFrame(() => {
+        const bar = document.getElementById('barFill');
+        if (bar) bar.style.width = Math.round((data.confidence ?? 0) * 100) + '%';
+      });
+    }
+  } catch(e) {
+    resultEl.innerHTML = `<div class="err"><strong>Network error:</strong> ${escHtml(e.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Analyse Ticket';
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.ctrlKey && e.key === 'Enter') submitTicket(); });
+</script>
+</body>
+</html>

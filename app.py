@@ -15,7 +15,7 @@ import logging
 import os
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import ValidationError
 
 import fallback
@@ -52,6 +52,15 @@ _load_dotenv()
 LLM_TIMEOUT = float(os.environ.get("LLM_TIMEOUT_SECONDS", "12"))
 
 app = FastAPI(title="QueueStorm Investigator", version="1.0")
+
+
+_STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index():
+    with open(os.path.join(_STATIC_DIR, "index.html"), encoding="utf-8") as fh:
+        return HTMLResponse(content=fh.read())
 
 
 @app.get("/health")
