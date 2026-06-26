@@ -62,7 +62,7 @@ trace or secret).
 
 ## Architecture — LLM-first with a deterministic guardrail
 
-![Architecture Diagram](architecture_diagram.png)
+![Architecture Diagram](architecture_diagram_with_bg.png)
 
 ```
 POST /analyze-ticket
