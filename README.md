@@ -62,6 +62,8 @@ trace or secret).
 
 ## Architecture — LLM-first with a deterministic guardrail
 
+![Architecture Diagram](architecture_diagram.png)
+
 ```
 POST /analyze-ticket
   1. Pydantic validates the input            (400 / 422 on bad input — never crashes)
